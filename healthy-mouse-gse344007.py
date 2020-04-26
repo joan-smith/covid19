@@ -19,6 +19,7 @@ import scanpy as sc
 from matplotlib import pyplot as plt 
 import matplotlib as mpl
 import scipy.sparse
+import os
 
 #%% Set scanpy and matplotlib settings
 sc.settings.figdir = 'data/cluster-plots/healthy-mouse/'
@@ -48,6 +49,8 @@ adata = sc.AnnData(scipy.sparse.vstack((data01, data02), format='csr'))
 adata.var = genes.set_index('name')
 adata.var_names_make_unique()
 print('Healthy Mouse: ', adata.X.max())
+#%%
+sc.pp.normalize_total(adata, target_sum=1e6)
 sc.pp.log1p(adata, base=2)
 
 #%% Exploratory plots
@@ -65,15 +68,32 @@ def exploratory_plots(adata):
     plt.savefig('data/cluster-plots/healthy-mouse/healthy_mouse_genes_cell_exploratory.pdf')
     
 #%% Perform Clustering
+LEARNING_RATE = 1000
+EARLY_EXAGGERATION = 12
+RESOLUTION = 1
+PERPLEXITY=30
+N_PCS = 50
 
 sc.pp.filter_cells(adata, min_genes=500)
-sc.pp.highly_variable_genes(adata, min_mean=0.0, max_mean=13, min_disp=0.5)
+sc.pp.highly_variable_genes(adata)
 
-sc.tl.pca(adata, zero_center=False)
-sc.pp.neighbors(adata, n_neighbors=30, n_pcs=30)
-sc.tl.tsne(adata, perplexity=50)
-sc.tl.leiden(adata)
+sc.tl.pca(adata)
+sc.pp.neighbors(adata)
+sc.tl.tsne(adata, learning_rate=LEARNING_RATE, n_jobs=8, early_exaggeration=EARLY_EXAGGERATION, perplexity=PERPLEXITY, n_pcs=N_PCS)
+sc.tl.leiden(adata, resolution=RESOLUTION)
+sc.pl.tsne(adata, color='leiden')
 
+params = {'learning_rate': LEARNING_RATE,
+          'early_exaggeration':EARLY_EXAGGERATION,
+          'resolution': RESOLUTION,
+          'perplexity': PERPLEXITY,
+          'n_pcs': N_PCS,
+          'genes': 'all'
+         }
+sc.pl.tsne(adata, color=['leiden'], size=25, save='_leiden.pdf', color_map='plasma')
+pd.Series(params).to_csv(os.path.join(sc.settings.figdir, 'params.txt'))
+adata.uns['joan_cluster_params'] = params
+adata.write(os.path.join(sc.settings.figdir, 'adata.h5ad'))
 #%% Plot clusters and clusters with highlighted genes
 
 markers = pd.read_csv('data/highlighted_genes.csv', header=None, names=['gene', 'cluster'])
@@ -97,42 +117,50 @@ ax = sc.pl.tsne(adata, color=['leiden'],
            size=25,
            show=False) 
 ax.legend().remove()
-plt.savefig('data/cluster-plots/healthy-mouse/leiden_healthy_mouse_gse3440071_markers_500gene.pdf')
+plt.savefig(os.path.join(sc.settings.figdir, 'leiden_healthy_mouse_gse3440071.pdf'))
 
 for i, g in markers.iterrows():
     sc.pl.tsne(adata, color=i,
            title=g['title'],
            color_map='plasma',
-           size=25,
+         
+            size=25,
            save='_' + i + '_healthy_mouse_gse3440071_markers_500gene.pdf',
            show=False) 
+    
+#%% 
+adata = sc.read_h5ad(os.path.join(sc.settings.figdir, 'adata.h5ad'))
 #%% Collect top-ranked genes for each group
 
-sc.tl.rank_genes_groups(adata, groupby='leiden', n_genes=10)
-pd.DataFrame(adata.uns['rank_genes_groups']['names']).to_csv('data/cluster-plots/healthy-mouse/healthy_mouse_groups.csv')
+sc.tl.rank_genes_groups(adata, groupby='leiden', n_genes=20)
+pd.DataFrame(adata.uns['rank_genes_groups']['names']).to_csv(os.path.join(sc.settings.figdir, 'healthy_mouse_groups.csv'))
 
+adata.write(os.path.join(sc.settings.figdir, 'adata.h5ad'))
 #%% Calculate correlations with ACE2
 
 df = adata.to_df()
 corr = df.corrwith(df['ACE2']).sort_values(ascending=False)
-corr.to_csv('data/cluster-plots/healthy-mouse/ACE2_correlates_healthy_mouse_GSM3440071.csv')
+corr.to_csv(os.path.join(sc.settings.figdir, 'ACE2_correlates_healthy_mouse_GSM3440071.csv'))
 
-#%% Stacked Violin Plot of labeled clusters and markers
 
-violin_markers = pd.read_csv('data/violin_markers_mouse.csv', header=None)
-violin_markers[0] = violin_markers[0].str.upper()
-violin_markers = violin_markers[violin_markers[0].isin(genes['name'].values)]
+#%% Cluster 14 and ACE2 pos
 
-cluster_key = pd.read_csv('data/healthy_mouse_cluster_key.csv', header=None, names=['cluster', 'cell_type'])
+adata.obs.loc[adata.obs['leiden'] == '14','ace2_goblet'] = 'goblet'
+adata.obs.loc[adata.to_df()['ACE2'] > 0, 'ace2_goblet'] = 'ace2_pos'
+sc.tl.rank_genes_groups(adata, groupby='ace2_goblet', key_added='ACE2_goblet', groups=['ace2_pos', 'goblet'])
+pd.DataFrame(adata.uns['ACE2_goblet']['names']).to_csv(os.path.join(sc.settings.figdir, 'ACE2_pos_v_goblet_rankings.csv'))
+
+#%% Trackplot Plot of labeled clusters and markers
+cluster_key = pd.read_csv(os.path.join(sc.settings.figdir, 'key.csv'), header=None, names=['cluster', 'cell_type'])
 cluster_key['cluster'] = cluster_key['cluster'].astype(str)
 cluster_key_map = cluster_key.set_index('cluster')['cell_type'].to_dict()
 
 adata.obs['Cell Types'] = adata.obs['leiden'].map(cluster_key_map, na_action='ignore').astype('category')
+sc.pl.tsne(adata, color=['Cell Types'], size=25, save='_leiden.pdf', color_map='plasma', title='Mouse Lung')
 
-
-axes_list = sc.pl.stacked_violin(adata, var_names=violin_markers[0].values, groupby='Cell Types', show=False, swap_axes=True)
+trackplot_markers = pd.read_csv(os.path.join(sc.settings.figdir, 'trackplot_mouse.csv'), header=None)
+axes_list = sc.pl.tracksplot(adata, var_names=trackplot_markers[0].values, groupby='Cell Types', figsize=(18,3))
 [i.yaxis.set_ticks([]) for i in axes_list]
 ax = plt.gca()
-ax.get_xaxis().set_label_text('')
-ax.figure.set_size_inches(5, 6)
-plt.savefig('data/cluster-plots/healthy-mouse/cell_type_stacked_violin2.pdf', bbox_inches='tight')
+ax.set_xlabel('')
+plt.savefig(os.path.join(sc.settings.figdir, 'tracksplot_cell_types.pdf'), bbox_inches='tight')
