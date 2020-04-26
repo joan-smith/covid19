@@ -1,0 +1,80 @@
+﻿ACE2,Coronavirus Receptor
+EPCAM,Epithelium
+PTPRC,Immune Cells
+PDGFRA,Mesenchymal Cells
+TMEM100,Endothelium
+RTKN2,Alveolar Type 1
+FOXJ1,Ciliated Cells
+LAMP3,Alveolar Type 2
+MUC5B,Secretory Cells
+MUC5AC,Goblet Cells
+SCGB3C1,Secretory Cells
+SCGB1A1,Club Cells
+GABRP,Secretory Cells
+LYPD2,Goblet Cells
+CLDN10,Secretory Cells
+KRT5,Basal Cells
+TRP63,Basal Cells
+MKI67,Proliferating Cells
+TOP2A,Proliferating Cells
+PCNA,Proliferating Cells
+DEUP1,Deuterosomal Cells
+FOXI1,Ionocytes
+CFTR,Ionocytes
+CGRP,Neuroendocrine Cells
+CHGA,Neuroendocrine Cells
+ASCL1,Brush/Tuft Cells
+LRMP,Brush/Tuft Cells
+COL1A1,Fibroblasts
+FBLN1,Fibroblasts
+ACTA2,Smooth Muscle Cells
+MYH11,Smooth Muscle Cells
+DNAH11,Ciliated Cells
+TP63,Basal Cells
+KRT8,Basal Cells
+CAV1,Basal Cells
+AGR2,Goblet Cells
+BPIFB1,Goblet/Club Cells
+SPDEF,Secretory Cells
+MUC1,Secretory Cells
+MUCL1,Secretory Cells?
+KIAA0101,01_p.basal
+TYMS,01_p.basal
+TK1,01_p.basal
+ZWINT,01_p.basal
+RRM2,01_p.basal
+KRT17,02_d.basal
+IL33,02_d.basal
+MMP10,02_d.basal
+BCAM,02_d.basal
+ETS2,02_d.basal
+C19orf33,03_KRT8.high
+GPRC5A,03_KRT8.high
+BHLHE40,03_KRT8.high
+TXN,03_KRT8.high
+EPAS1,03_KRT8.high
+BPIFB1,04_muc.secretory
+VMO1,04_muc.secretory
+MSMB,04_muc.secretory
+S100P,04_muc.secretory
+RDH10,04_muc.secretory
+FAM216B,05_ciliated
+STOML3,05_ciliated
+MRLN,05_ciliated
+CATSPERD,05_ciliated
+ANKRD66,05_ciliated
+HEPACAM2,06_rare
+PROX1,06_rare
+TUBB2B,06_rare
+NEURL1,06_rare
+PHGR1,06_rare
+KRT14,07_SMG.basal
+CAV1,07_SMG.basal
+FOS,07_SMG.basal
+G0S2,07_SMG.basal
+NAP1L1,07_SMG.basal
+SLPI,08_SMG.secretory
+RARRES1,08_SMG.secretory
+SCGB3A1,08_SMG.secretory
+TCN1,08_SMG.secretory
+MMP7,08_SMG.secretory
