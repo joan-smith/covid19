@@ -207,3 +207,54 @@ all_axes[0].set_ylabel('')
 
 plt.savefig(os.path.join(sc.settings.figdir, 'dotplot_ace2_marker_goblet_ciliated_basal.pdf'), bbox_inches='tight')
 
+#%%
+
+genes = ['ACE2', 'ASCL1', 'BCAM', 'CDK1', 'CEACAM5', 'CFTR', 'FOXI1', 'FOXJ1',  
+         'MKI67', 'MUC5AC', 'MUC5B', 'RFX3', 'SCGB1A1', 'SCGB3A1', 'TP63', 'TUBA1A']
+
+axes_list = sc.pl.tracksplot(adata, genes, groupby='Cell Types', figsize=(18,3.5))
+[i.yaxis.set_ticks([]) for i in axes_list]
+ax = plt.gca()
+ax.set_xlabel('')
+plt.savefig(os.path.join(sc.settings.figdir, 'tracksplot_cell_types.pdf'), bbox_inches='tight')
+
+#%% FoxJ1 per patient
+
+FOXJ1 = adata.to_df()[['FOXJ1']].join(adata.obs)
+FOXJ1 = FOXJ1[FOXJ1['FOXJ1'] > 0] 
+FOXJ1.groupby('Donor')['FOXJ1'].count().to_csv(os.path.join(sc.settings.figdir, 'foxj1_donor_counts.csv'))
+
+FOXJ1.groupby('Cell Types')['FOXJ1'].count().to_csv(os.path.join(sc.settings.figdir, 'foxj1_cell_type_counts.csv'))
+
+#%% Colors for donor smoker v non
+donor_smoke_status =  adata.obs[['Donor', 'Smoke_status']].drop_duplicates().set_index('Donor')
+blues_cmap = mpl.cm.get_cmap('Blues')
+reds_cmap = mpl.cm.get_cmap('Reds')
+
+colors = []   
+for i, (d, status) in enumerate(donor_smoke_status.iterrows()):
+    print(i, d)
+    if status['Smoke_status'] == 'never':
+        c = blues_cmap(i/12 + 0.05)
+    else:
+        c = reds_cmap(i/12 + 0.05)
+    colors.append(mpl.colors.to_rgba(c))
+
+donor_smoke_status['color'] = colors
+#%%
+goblet_club = adata[adata.obs['Cell Types'] == 'Goblet/Club cells']
+goblet_club.uns['Donor_colors'] = donor_smoke_status.loc[goblet_club.obs.Donor.cat.categories]['color'].to_list()
+
+fig, ax = plt.subplots()
+sc.pl.tsne(adata, ax=ax)
+sc.pl.tsne(goblet_club, color=['Donor'], groups=donor_smoke_status.sort_values('Smoke_status').index.values, ax=ax, title='Goblet/Club Cells')
+plt.savefig(os.path.join(sc.settings.figdir, 'goblet_club_smoke_status.pdf'), bbox_inches='tight') 
+
+#%%%
+ciliated = adata[adata.obs['Cell Types'] == 'Ciliated cells']
+ciliated.uns['Donor_colors'] = donor_smoke_status.loc[ciliated.obs.Donor.cat.categories]['color'].to_list()
+
+fig, ax = plt.subplots()
+sc.pl.tsne(adata, ax=ax)
+sc.pl.tsne(ciliated, color=['Donor'], groups=donor_smoke_status.sort_values('Smoke_status', ascending=False).index.values, ax=ax, title='Ciliated Cells')
+plt.savefig(os.path.join(sc.settings.figdir, 'ciliated_smoke_status.pdf'), bbox_inches='tight') 
